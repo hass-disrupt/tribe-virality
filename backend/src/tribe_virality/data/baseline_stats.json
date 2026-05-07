@@ -1,0 +1,8 @@
+{
+  "_comment": "Per-sub-score baseline statistics used to z-score a video's activation. v1 values are synthesized. Replace with empirical statistics from ~30 reference videos in a future milestone.",
+  "reward": { "mean": 0.50, "std": 0.15 },
+  "emotion": { "mean": 0.50, "std": 0.15 },
+  "attention": { "mean": 0.50, "std": 0.15 },
+  "novelty": { "mean": 0.50, "std": 0.15 },
+  "social_relevance": { "mean": 0.50, "std": 0.15 }
+}
