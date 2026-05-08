@@ -9,10 +9,14 @@ build:
   run:
     # Bake all model weights into the image at push time. The user passes
     # HUGGING_FACE_HUB_TOKEN as a build secret:
-    #   cog push --secret HUGGING_FACE_HUB_TOKEN=hf_xxx r8.im/...
+    #   cog push --secret id=HUGGING_FACE_HUB_TOKEN,env=HUGGING_FACE_HUB_TOKEN ...
     # The token is only present during build; it is not embedded in the
     # final image. Llama-3.2-3B is gated so this token is required.
-    - command: bash /src/scripts/bake_weights.sh
+    #
+    # NOTE: Cog's `run:` steps execute BEFORE the source tree is copied into
+    # the image, so we can't reference a script under /src. Inline instead.
+    # YAML's `''` inside a single-quoted string is a literal single quote.
+    - command: 'export HUGGING_FACE_HUB_TOKEN=$(cat /run/secrets/HUGGING_FACE_HUB_TOKEN) && mkdir -p /src/cache && python -c "from tribev2.demo_utils import TribeModel; TribeModel.from_pretrained(''facebook/tribev2'', cache_folder=''/src/cache'')" && du -sh /src/cache'
       mounts:
         - type: secret
           id: HUGGING_FACE_HUB_TOKEN
