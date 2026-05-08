@@ -3,7 +3,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine,
 } from "recharts";
-import type { TimelinePoint } from "../lib/api";
+import type { TimelinePoint } from "../types";
 
 const COLORS: Record<string, string> = {
   reward: "#a78bfa",

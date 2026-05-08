@@ -1,4 +1,4 @@
-import type { TimelinePoint } from "../../lib/api";
+import type { TimelinePoint } from "../../types";
 
 export type ZoneKey =
   | "reward"

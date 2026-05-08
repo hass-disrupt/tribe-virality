@@ -13,7 +13,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { Maximize2, Sparkles, MoveHorizontal } from "lucide-react";
-import type { TimelinePoint } from "../lib/api";
+import type { TimelinePoint } from "../types";
 import {
   BRAIN_BASE_COLOR,
   hotnessToRGB,
