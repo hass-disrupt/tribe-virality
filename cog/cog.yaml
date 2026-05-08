@@ -1,0 +1,10 @@
+build:
+  gpu: false
+  python_version: "3.11"
+  system_packages:
+    - "ffmpeg"
+  python_packages:
+    - "numpy>=1.26"
+    - "pydantic>=2"
+
+predict: "predict.py:Predictor"
