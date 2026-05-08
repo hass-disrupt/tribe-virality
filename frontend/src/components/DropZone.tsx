@@ -9,6 +9,22 @@ interface DropZoneProps {
 
 const ACCEPT = ["video/mp4", "video/quicktime", "video/webm"];
 const MAX_MB = 100;
+const MAX_DURATION_S = 60;
+
+async function readDurationS(file: File): Promise<number> {
+  const url = URL.createObjectURL(file);
+  try {
+    return await new Promise<number>((resolve, reject) => {
+      const v = document.createElement("video");
+      v.preload = "metadata";
+      v.onloadedmetadata = () => resolve(v.duration);
+      v.onerror = () => reject(new Error("Couldn't read video metadata."));
+      v.src = url;
+    });
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
 
 export function DropZone({ onFile, disabled }: DropZoneProps) {
   const [dragOver, setDragOver] = useState(false);
@@ -26,10 +42,24 @@ export function DropZone({ onFile, disabled }: DropZoneProps) {
   };
 
   const handle = useCallback(
-    (file: File) => {
+    async (file: File) => {
       setError(null);
-      const err = validate(file);
-      if (err) { setError(err); return; }
+      const fmtErr = validate(file);
+      if (fmtErr) { setError(fmtErr); return; }
+      try {
+        const duration = await readDurationS(file);
+        if (!isFinite(duration) || duration <= 0) {
+          setError("Couldn't read this video — try re-exporting as MP4.");
+          return;
+        }
+        if (duration > MAX_DURATION_S) {
+          setError(`Video is ${duration.toFixed(1)}s — must be ≤ ${MAX_DURATION_S}s.`);
+          return;
+        }
+      } catch {
+        setError("Couldn't read this video — try re-exporting as MP4.");
+        return;
+      }
       onFile(file);
     },
     [onFile],
@@ -82,7 +112,7 @@ export function DropZone({ onFile, disabled }: DropZoneProps) {
           <p className="text-ink-muted text-sm mt-1">or click to browse</p>
         </div>
         <p className="text-ink-dim text-xs font-mono">
-          MP4 · MOV · WebM &nbsp;·&nbsp; ≤ 60 seconds &nbsp;·&nbsp; ≤ {MAX_MB} MB
+          MP4 · MOV · WebM &nbsp;·&nbsp; ≤ {MAX_DURATION_S} seconds &nbsp;·&nbsp; ≤ {MAX_MB} MB
         </p>
       </div>
       <input
