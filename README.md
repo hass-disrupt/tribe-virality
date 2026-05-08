@@ -20,11 +20,13 @@ Browser  ──▶  api.replicate.com  ──▶  prakhar-bhartiya/meta-tribev2-
 
 - **Frontend:** Vite + React + TypeScript. Static build deployed to nginx on Hostinger.
 - **Replicate model (cog):** see [`cog/`](./cog/) for the model package.
+- **Thin nginx reverse-proxy** at `/replicate-api/*` → `https://api.replicate.com/*`. Required because Replicate's API does not allow direct browser CORS. The proxy is configuration-only — no application logic, no logging of credentials, no persistence.
 - **No application server.** No SQLite. No accounts. No telemetry.
 
-The user's API token lives only in browser memory; it is cleared on refresh
-or tab close. The single piece of persistent state we write is the
-disclaimer-acknowledgment flag in `localStorage`.
+The user's API token lives only in browser memory and transits the nginx
+proxy as a transparent `Authorization: Bearer …` header in flight; it is
+never stored on disk or in logs. The single piece of persistent state we
+write is the disclaimer-acknowledgment flag in `localStorage`.
 
 ## Quick Start
 
@@ -44,6 +46,52 @@ Open http://localhost:5173. The app will:
 
 See [`docs/REPLICATE_SETUP.md`](./docs/REPLICATE_SETUP.md) for a step-by-step
 guide to creating your Replicate account and API token.
+
+## Production deployment (Hostinger)
+
+Build the static bundle:
+
+```bash
+cd frontend && npm install && npm run build
+# output: frontend/dist/
+```
+
+Serve `frontend/dist/` from nginx with a single proxy rule for the Replicate
+endpoints:
+
+```nginx
+server {
+  listen 443 ssl http2;
+  server_name your-domain.example;
+
+  root /var/www/tribe-virality/dist;
+  index index.html;
+
+  # SPA fallback
+  location / {
+    try_files $uri /index.html;
+  }
+
+  # Transparent proxy to Replicate. Never log Authorization or request bodies.
+  location /replicate-api/ {
+    proxy_pass https://api.replicate.com/;
+    proxy_set_header Host api.replicate.com;
+    proxy_ssl_server_name on;
+
+    # Stream uploads up to 100 MB.
+    client_max_body_size 110m;
+    proxy_request_buffering off;
+    proxy_buffering off;
+
+    # Strip our hop's logging of credentials.
+    access_log off;
+  }
+}
+```
+
+The proxy adds zero application logic — it only forwards requests so the
+browser's same-origin policy is satisfied. The user's API token is set as
+the `Authorization` header by the browser and passes through untouched.
 
 ## Building the cog model
 

@@ -6,13 +6,13 @@ describe("replicateFetch", () => {
     vi.restoreAllMocks();
   });
 
-  it("sends Authorization header to api.replicate.com", async () => {
+  it("sends Authorization header to the proxy path", async () => {
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify({ ok: true }), { status: 200, headers: { "content-type": "application/json" } }),
     );
     await replicateFetch({ apiKey: "r8_test" }, "/v1/account");
     const [url, init] = fetchSpy.mock.calls[0];
-    expect(String(url)).toBe("https://api.replicate.com/v1/account");
+    expect(String(url)).toBe("/replicate-api/v1/account");
     const headers = new Headers(init?.headers);
     expect(headers.get("Authorization")).toBe("Bearer r8_test");
   });

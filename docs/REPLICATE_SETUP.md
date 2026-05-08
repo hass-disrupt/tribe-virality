@@ -28,9 +28,12 @@ calling `GET /v1/account`; no credits are used by validation.
 ## Security
 
 - The token is stored only in browser memory.
-- It is sent only to `api.replicate.com`.
+- It is sent only to `api.replicate.com`, transiting a thin nginx
+  reverse-proxy on the host (Replicate's API doesn't permit direct browser
+  CORS). The proxy is configuration-only and does not log credentials or
+  bodies.
 - It is **not** stored in `localStorage`, `sessionStorage`, cookies, or any
-  server.
+  database.
 - Refreshing the page or closing the tab clears the token; you'll be asked
   to paste it again next time.
 

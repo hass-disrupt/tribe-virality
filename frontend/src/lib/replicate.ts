@@ -1,4 +1,9 @@
-const REPLICATE_HOST = "https://api.replicate.com";
+// Replicate's API doesn't allow direct browser CORS. The frontend talks to
+// `/replicate-api/*`, which a transparent reverse-proxy (Vite in dev, nginx
+// in production) forwards to https://api.replicate.com/* with the caller's
+// Authorization header intact. The proxy is config-only — no logic and no
+// logging of credentials.
+const REPLICATE_HOST = "/replicate-api";
 
 export class ReplicateAuthError extends Error {
   constructor(msg: string) { super(msg); this.name = "ReplicateAuthError"; }
@@ -70,6 +75,7 @@ export async function uploadFile(
   return new Promise<UploadedFile>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open("POST", `${REPLICATE_HOST}/v1/files`);
+    // Routes through the same reverse-proxy as fetch() above.
     xhr.setRequestHeader("Authorization", `Bearer ${auth.apiKey}`);
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable && onProgress) onProgress(e.loaded, e.total);
