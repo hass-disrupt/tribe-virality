@@ -38,9 +38,19 @@ cd cog
 # One-time, if you haven't already authenticated to Replicate:
 # cog login
 
+# Cog passes secrets through to Docker BuildKit, which uses id=NAME,env=...
+# (or id=NAME,src=FILE) syntax — NOT plain KEY=VALUE.
+
+# Option A: source the token from a shell variable
+export HUGGING_FACE_HUB_TOKEN=hf_yourtokenhere
 cog push \
-  --secret HUGGING_FACE_HUB_TOKEN=hf_yourtokenhere \
+  --secret id=HUGGING_FACE_HUB_TOKEN,env=HUGGING_FACE_HUB_TOKEN \
   r8.im/prakhar-bhartiya/meta-tribev2-social-media-content-signal
+
+# Option B: source the token from a file
+# echo -n "hf_yourtokenhere" > /tmp/hf_token
+# cog push --secret id=HUGGING_FACE_HUB_TOKEN,src=/tmp/hf_token r8.im/...
+# rm /tmp/hf_token
 ```
 
 The build downloads:
