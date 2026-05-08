@@ -1,6 +1,8 @@
-"""Smoke test for the Predictor's synthetic output.
+"""Smoke test for the Predictor's end-to-end output.
 
-Skipped if `cog` or `ffmpeg` are unavailable.
+Phase-2 status: real TRIBE inference needs a GPU plus baked weights, so
+this test is intentionally skipped on local CPU runs and CI. It is
+exercised inside the cog image via `cog run python -m pytest`.
 """
 from __future__ import annotations
 
@@ -11,9 +13,18 @@ from pathlib import Path
 import pytest
 
 cog = pytest.importorskip("cog")
+pytest.importorskip("tribev2")
 
 if not shutil.which("ffmpeg") or not shutil.which("ffprobe"):
     pytest.skip("ffmpeg/ffprobe not available", allow_module_level=True)
+
+# Real TRIBE needs CUDA; the test is meaningful only inside the cog image.
+try:
+    import torch
+    if not torch.cuda.is_available():
+        pytest.skip("CUDA not available — real TRIBE inference needs GPU", allow_module_level=True)
+except ImportError:
+    pytest.skip("torch not installed", allow_module_level=True)
 
 
 @pytest.fixture
@@ -50,7 +61,12 @@ def test_predict_returns_well_formed_output(tiny_mp4: Path) -> None:
         for k in result.sub_scores:
             assert 0 <= row[k] <= 100
 
-    # Non-degeneracy: the synthetic timeline must actually vary over time.
-    # Catches regressions like t=2 producing two identical sinusoid samples.
+    # Non-degeneracy: real TRIBE preds should vary over time. A flat
+    # timeline indicates a wiring bug (e.g. mean preds being passed
+    # instead of per-step values).
     reward_values = {row["reward"] for row in result.timeline}
-    assert len(reward_values) > 1, "Timeline reward column is flat — synthetic generator degenerate"
+    assert len(reward_values) > 1, "Timeline reward column is flat — TRIBE output suspicious"
+
+    # Sanity check: model_version reports the current Phase-2 string.
+    assert result.model_version.startswith("tribev2"), \
+        f"Unexpected model_version: {result.model_version}"
