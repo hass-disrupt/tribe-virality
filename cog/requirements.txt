@@ -1,0 +1,8 @@
+torch>=2.4
+torchaudio>=2.4
+transformers>=4.55
+numpy>=1.26
+pydantic>=2
+pandas
+huggingface_hub>=0.24
+tribev2[plotting] @ git+https://github.com/facebookresearch/tribev2.git

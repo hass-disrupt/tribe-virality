@@ -13,10 +13,10 @@ Pipeline:
 from __future__ import annotations
 
 import subprocess
-from pathlib import Path
+from pathlib import Path as FsPath
 
 import numpy as np
-from cog import BasePredictor, Input, Path as CogPath
+from cog import BasePredictor, Input, Path
 from pydantic import BaseModel
 
 from scoring.constants import SUB_SCORE_NAMES
@@ -30,7 +30,7 @@ SCORING_VERSION = "1.0"
 
 # Where `cog.yaml`'s build step bakes the TRIBE weights. Must match the
 # `cache_folder=` argument used in the bake command.
-WEIGHTS_CACHE_DIR = Path("/src/cache")
+WEIGHTS_CACHE_DIR = FsPath("/src/cache")
 
 
 class TribeOutput(BaseModel):
@@ -43,7 +43,7 @@ class TribeOutput(BaseModel):
     scoring_version: str
 
 
-def _ffprobe_duration_s(video_path: Path) -> float:
+def _ffprobe_duration_s(video_path: FsPath) -> float:
     """Return the duration of `video_path` in seconds via ffprobe."""
     try:
         out = subprocess.run(
@@ -87,9 +87,9 @@ class Predictor(BasePredictor):
 
     def predict(  # type: ignore[override]
         self,
-        video: CogPath = Input(description="Video file (≤60s, MP4/MOV/WebM)"),
+        video: Path = Input(description="Video file (≤60s, MP4/MOV/WebM)"),
     ) -> TribeOutput:
-        video_path = Path(video)
+        video_path = FsPath(video)
 
         print("STAGE:loading_video", flush=True)
         duration_s = _ffprobe_duration_s(video_path)

@@ -5,15 +5,7 @@ build:
   system_packages:
     - "ffmpeg"
     - "git"
-  python_packages:
-    - "torch>=2.4"
-    - "torchaudio>=2.4"
-    - "transformers>=4.55"
-    - "numpy>=1.26"
-    - "pydantic>=2"
-    - "pandas"
-    - "huggingface_hub>=0.24"
-    - "tribev2[plotting] @ git+https://github.com/facebookresearch/tribev2.git"
+  python_requirements: "requirements.txt"
   run:
     # Bake all model weights into the image at push time. The user passes
     # HUGGING_FACE_HUB_TOKEN as a build secret:
