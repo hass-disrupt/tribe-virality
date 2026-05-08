@@ -26,5 +26,6 @@ build:
       mounts:
         - type: secret
           id: HUGGING_FACE_HUB_TOKEN
+          target: /run/secrets/HUGGING_FACE_HUB_TOKEN
 
 predict: "predict.py:Predictor"
