@@ -9,7 +9,6 @@ from __future__ import annotations
 import hashlib
 import subprocess
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 from cog import BasePredictor, Input, Path as CogPath
@@ -21,6 +20,8 @@ from scoring.rois import expected_n_vertices
 
 SCORING_VERSION = "1.0"
 MODEL_VERSION = "synthetic-v1"  # will become "tribev2-<commit>" after Phase 2
+TRIBE_OUTPUT_HZ = 2.0  # TRIBE v2 emits ~2 fMRI frames per second
+MIN_TIMESTEPS = 4  # below this, the synthetic sinusoid degenerates to flat
 
 
 class TribeOutput(BaseModel):
@@ -34,17 +35,29 @@ class TribeOutput(BaseModel):
 
 
 def _ffprobe_duration_s(video_path: Path) -> float:
-    out = subprocess.run(
-        [
-            "ffprobe", "-v", "error", "-show_entries", "format=duration",
-            "-of", "default=noprint_wrappers=1:nokey=1", str(video_path),
-        ],
-        capture_output=True, text=True, check=True,
-    )
-    return float(out.stdout.strip())
+    try:
+        out = subprocess.run(
+            [
+                "ffprobe", "-v", "error", "-show_entries", "format=duration",
+                "-of", "default=noprint_wrappers=1:nokey=1", str(video_path),
+            ],
+            capture_output=True, text=True, check=True,
+        )
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"ffprobe failed: {e.stderr.strip() or 'no stderr'}") from e
+    text = out.stdout.strip()
+    if not text:
+        raise RuntimeError("ffprobe produced no duration output")
+    return float(text)
 
 
 def _seed_from_video(video_path: Path) -> int:
+    """Hash the file's first 1 MB into a 32-bit seed.
+
+    Capped at 1 MB so seeding stays cheap on large videos. Two different videos
+    with identical first 1 MB will collide — acceptable for synthetic Phase-1
+    output but worth knowing for tests.
+    """
     h = hashlib.sha256()
     with video_path.open("rb") as f:
         h.update(f.read(1024 * 1024))
@@ -78,7 +91,7 @@ class Predictor(BasePredictor):
         duration_s = _ffprobe_duration_s(video_path)
         if duration_s <= 0:
             raise ValueError(f"Invalid duration: {duration_s}")
-        t = max(2, int(round(duration_s * 2.0)))
+        t = max(MIN_TIMESTEPS, int(round(duration_s * TRIBE_OUTPUT_HZ)))
         v = expected_n_vertices()
 
         print("STAGE:tribe_inference", flush=True)

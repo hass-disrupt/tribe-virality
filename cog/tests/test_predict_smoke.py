@@ -49,3 +49,8 @@ def test_predict_returns_well_formed_output(tiny_mp4: Path) -> None:
         assert "t" in row
         for k in result.sub_scores:
             assert 0 <= row[k] <= 100
+
+    # Non-degeneracy: the synthetic timeline must actually vary over time.
+    # Catches regressions like t=2 producing two identical sinusoid samples.
+    reward_values = {row["reward"] for row in result.timeline}
+    assert len(reward_values) > 1, "Timeline reward column is flat — synthetic generator degenerate"
