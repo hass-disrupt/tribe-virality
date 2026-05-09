@@ -23,8 +23,15 @@ import os
 # falls back to the standard requests-based download path.
 os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "0"
 
+import shutil
 import subprocess
 from pathlib import Path as FsPath
+
+# TRIBE's get_events_dataframe() validates `video_path` against this set.
+# Replicate's Files API URLs strip the original filename, so cog downloads
+# uploaded videos to extensionless temp paths — we symlink to a known
+# extension before handing the path to TRIBE.
+_TRIBE_VIDEO_EXTS = {".avi", ".mkv", ".mov", ".mp4", ".webm"}
 
 import numpy as np
 from cog import BasePredictor, Input, Path
@@ -52,6 +59,27 @@ class TribeOutput(BaseModel):
     frame_count: int
     model_version: str
     scoring_version: str
+
+
+def _ensure_known_extension(src: FsPath) -> FsPath:
+    """Return a path with one of TRIBE's accepted extensions.
+
+    If `src` already has an accepted extension, return it unchanged.
+    Otherwise, create a sibling symlink (or copy on filesystems that don't
+    support symlinks) with `.mp4` appended and return that path.
+    """
+    if src.suffix.lower() in _TRIBE_VIDEO_EXTS:
+        return src
+    # Append `.mp4` rather than replacing any existing suffix; the upload may
+    # legitimately have a dot somewhere in its name (`abc.123` → `abc.123.mp4`).
+    fixed = src.with_name(src.name + ".mp4")
+    if fixed.exists():
+        fixed.unlink()
+    try:
+        os.symlink(src, fixed)
+    except OSError:
+        shutil.copy2(src, fixed)
+    return fixed
 
 
 def _ffprobe_duration_s(video_path: FsPath) -> float:
@@ -100,7 +128,7 @@ class Predictor(BasePredictor):
         self,
         video: Path = Input(description="Video file (≤60s, MP4/MOV/WebM)"),
     ) -> TribeOutput:
-        video_path = FsPath(video)
+        video_path = _ensure_known_extension(FsPath(video))
 
         print("STAGE:loading_video", flush=True)
         duration_s = _ffprobe_duration_s(video_path)
