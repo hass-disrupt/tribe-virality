@@ -9,26 +9,50 @@ export type ZoneKey =
 
 export type SubMap = Record<ZoneKey, number>;
 
-/** Hot colormap: 0→deep red, 0.5→orange, 1→yellow-white. */
+/**
+ * Vibrant 5-stop colormap on-brand with the app's #a78bfa purple accent.
+ * Ramps deep purple → violet → magenta → orange → yellow as hotness rises.
+ */
 function hotRGB(t: number): [number, number, number] {
-  return [
-    Math.min(1, 0.6 + t * 1.2),
-    Math.min(1, Math.max(0, t * 1.6 - 0.25)),
-    Math.min(1, Math.max(0, t * 1.4 - 0.85)),
+  // Stops chosen so adjacent transitions stay perceptually smooth and the
+  // mid-range (0.4–0.7, where most real activations land) is the most
+  // saturated. Each entry is [stop_position, [r, g, b]] in 0..1.
+  const stops: ReadonlyArray<readonly [number, readonly [number, number, number]]> = [
+    [0.00, [0.25, 0.10, 0.65]],  // deep indigo-purple
+    [0.30, [0.65, 0.25, 0.95]],  // bright violet
+    [0.55, [1.00, 0.30, 0.65]],  // hot magenta
+    [0.80, [1.00, 0.55, 0.15]],  // saturated orange
+    [1.00, [1.00, 1.00, 0.40]],  // bright yellow
   ];
+  for (let i = 0; i < stops.length - 1; i++) {
+    const [t0, c0] = stops[i];
+    const [t1, c1] = stops[i + 1];
+    if (t <= t1) {
+      const a = (t - t0) / (t1 - t0);
+      return [
+        c0[0] + (c1[0] - c0[0]) * a,
+        c0[1] + (c1[1] - c0[1]) * a,
+        c0[2] + (c1[2] - c0[2]) * a,
+      ];
+    }
+  }
+  const last = stops[stops.length - 1][1];
+  return [last[0], last[1], last[2]];
 }
 
 export const BRAIN_BASE_COLOR: [number, number, number] = [0.94, 0.93, 0.91];
 
 /**
  * Map a [0,1] localized hotness to RGB. 0 = base cortical white,
- * 1 = bright yellow. The full hot map is reserved for the *peak* of an active
- * region so the brain stays mostly white with sharp localized spots.
+ * 1 = peak yellow at the active spot's centroid. The blend exponent
+ * controls how aggressively color appears at low hotness — 0.35 gives
+ * visible tint even when activations are mild, which matches the real
+ * TRIBE output range better than the old 0.6.
  */
 export function hotnessToRGB(h: number): [number, number, number] {
   const t = Math.max(0, Math.min(1, h));
   if (t <= 0) return BRAIN_BASE_COLOR;
-  const blend = Math.pow(t, 0.6);
+  const blend = Math.pow(t, 0.35);
   const [hr, hg, hb] = hotRGB(t);
   return [
     BRAIN_BASE_COLOR[0] + (hr - BRAIN_BASE_COLOR[0]) * blend,
@@ -127,8 +151,10 @@ export function zoneStrength(
   const dz = nz / len;
   const cl = Math.hypot(cx, c[1], c[2]) || 1;
   const dot = (dx * cx + dy * c[1] + dz * c[2]) / cl;
-  // Tunes the spatial size of each ROI. Higher exponent = tighter hot spot.
-  return Math.pow(Math.max(0, dot), 2.6);
+  // Tunes the spatial size of each ROI. Lower exponent = wider, glowier
+  // hot patch. 1.8 gives readable footprints without zones bleeding into
+  // each other.
+  return Math.pow(Math.max(0, dot), 1.8);
 }
 
 export const ZONE_LABELS: Record<ZoneKey, string> = {
