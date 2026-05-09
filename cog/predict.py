@@ -12,6 +12,17 @@ Pipeline:
 """
 from __future__ import annotations
 
+import os
+
+# Disable HuggingFace Hub's fast-download path BEFORE any HF-touching imports.
+# Cog's base image enables HF_HUB_ENABLE_HF_TRANSFER=1 by default, but TRIBE's
+# get_events_dataframe() spawns whisperx as a subprocess in an isolated uv
+# venv that doesn't have the `hf_transfer` package — the subprocess inherits
+# the env var and crashes when whisperx tries to download Faster-Whisper
+# weights. Disabling the flag for our process (and therefore subprocesses)
+# falls back to the standard requests-based download path.
+os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "0"
+
 import subprocess
 from pathlib import Path as FsPath
 
