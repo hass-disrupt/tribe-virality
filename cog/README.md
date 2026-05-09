@@ -38,19 +38,23 @@ cd cog
 # One-time, if you haven't already authenticated to Replicate:
 # cog login
 
-# Cog passes secrets through to Docker BuildKit, which uses id=NAME,env=...
-# (or id=NAME,src=FILE) syntax — NOT plain KEY=VALUE.
+# Cog passes secrets through to Docker BuildKit. Use the file-based form
+# (--secret id=NAME,src=FILE). The env-based form (env=NAME) is fragile
+# because cog's invocation of buildx doesn't always propagate shell env
+# vars — symptom is a silently empty secret reaching the build container.
 
-# Option A: source the token from a shell variable
-export HUGGING_FACE_HUB_TOKEN=hf_yourtokenhere
+# Use a classic Read token (NOT a write or fine-grained token), created at
+# huggingface.co/settings/tokens — Llama-3.2-3B is gated, write tokens
+# often lack read-access to gated repos.
+
+echo -n "hf_yourReadTokenHere" > /tmp/hf_token
+wc -c /tmp/hf_token   # should print ~37 — confirms the token is present
+
 cog push \
-  --secret id=HUGGING_FACE_HUB_TOKEN,env=HUGGING_FACE_HUB_TOKEN \
+  --secret id=HUGGING_FACE_HUB_TOKEN,src=/tmp/hf_token \
   r8.im/prakhar-bhartiya/meta-tribev2-social-media-content-signal
 
-# Option B: source the token from a file
-# echo -n "hf_yourtokenhere" > /tmp/hf_token
-# cog push --secret id=HUGGING_FACE_HUB_TOKEN,src=/tmp/hf_token r8.im/...
-# rm /tmp/hf_token
+rm /tmp/hf_token
 ```
 
 The build downloads:
