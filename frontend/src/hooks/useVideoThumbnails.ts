@@ -7,7 +7,7 @@ interface Args {
   height?: number;
 }
 
-export function useVideoThumbnails({ videoUrl, durationS, width = 96, height = 54 }: Args): string[] {
+export function useVideoThumbnails({ videoUrl, durationS, width = 96, height = 96 }: Args): string[] {
   const [out, setOut] = useState<string[]>([]);
 
   useEffect(() => {
@@ -28,11 +28,37 @@ export function useVideoThumbnails({ videoUrl, durationS, width = 96, height = 5
     const seconds = Math.max(1, Math.floor(durationS) + 1);
     const collected: string[] = [];
 
+    function drawAspectFit(): void {
+      // Letterbox/pillarbox the source video into the (width, height) cell so
+      // portrait, square, and landscape inputs all render without distortion.
+      ctx!.fillStyle = "#000";
+      ctx!.fillRect(0, 0, width, height);
+      const srcW = v.videoWidth || width;
+      const srcH = v.videoHeight || height;
+      const srcAspect = srcW / srcH;
+      const dstAspect = width / height;
+      let dw: number, dh: number, dx: number, dy: number;
+      if (srcAspect > dstAspect) {
+        // wider than cell — letterbox top/bottom
+        dw = width;
+        dh = width / srcAspect;
+        dx = 0;
+        dy = (height - dh) / 2;
+      } else {
+        // taller than cell — pillarbox left/right
+        dh = height;
+        dw = height * srcAspect;
+        dx = (width - dw) / 2;
+        dy = 0;
+      }
+      ctx!.drawImage(v, dx, dy, dw, dh);
+    }
+
     async function captureAt(t: number): Promise<string> {
       return new Promise<string>((resolve) => {
         const onSeeked = () => {
           v.removeEventListener("seeked", onSeeked);
-          ctx!.drawImage(v, 0, 0, width, height);
+          drawAspectFit();
           resolve(canvas.toDataURL("image/jpeg", 0.7));
         };
         v.addEventListener("seeked", onSeeked);

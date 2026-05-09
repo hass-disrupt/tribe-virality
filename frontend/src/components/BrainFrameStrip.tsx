@@ -12,8 +12,10 @@
 import { useRef, useMemo, useEffect } from "react";
 import type { TimelinePoint } from "../types";
 
+// Square video cell so the canvas-side letterboxing in useVideoThumbnails
+// gives portrait, square, and landscape clips comparable visible area.
 const THUMB_W = 96;
-const THUMB_H = 54;
+const THUMB_H = 96;
 const SIGNAL_H = 32;
 const BRAIN_H = 130;
 const GAP = 4;
@@ -151,7 +153,7 @@ export function BrainFrameStrip({
                       <img
                         src={src}
                         alt={`t=${s}s`}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain"
                         loading="lazy"
                       />
                     )}

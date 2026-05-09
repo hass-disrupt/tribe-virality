@@ -563,8 +563,12 @@ export function HeadViewer3D({
         lastSurface = surface;
         forceColorRefresh = false;
         const scores = interpolateScores(timelineRef.current, t);
-        const lo = 60;
-        const span = 35;
+        // Hotness window. Real TRIBE outputs (with the current synthesized
+        // baseline) cluster in 0–25, so map that range to [0,1] hotness.
+        // When baseline_stats.json is recalibrated against measured videos
+        // and scores spread closer to 0–100, widen `span` accordingly.
+        const lo = 0;
+        const span = 20;
         const zoneHot = ZONE_KEYS.map((k) =>
           Math.max(0, Math.min(1, (scores[k] - lo) / span)),
         );
