@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from scoring.constants import SUB_SCORE_NAMES, WEIGHTS
-from scoring.pipeline import score_preds, sub_score_curves
+from scoring.pipeline import score_preds
 from scoring.rois import expected_n_vertices
 
 
@@ -105,11 +105,3 @@ def test_bad_duration_raises():
 def test_bad_preds_shape_raises():
     with pytest.raises(ValueError, match="2D"):
         score_preds(np.zeros(10, dtype=np.float64), video_duration_s=1.0)
-
-
-def test_sub_score_curves_returns_one_series_per_bucket():
-    preds = _make_preds(t=6, fill=0.5)
-    curves = sub_score_curves(preds)
-    assert set(curves.keys()) == set(SUB_SCORE_NAMES)
-    for name, curve in curves.items():
-        assert curve.shape == (6,)

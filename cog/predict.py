@@ -1,7 +1,5 @@
 """Cog Predictor for TRIBE Virality.
 
-Phase 2: real Meta TRIBE v2 inference.
-
 Pipeline:
   video file
     -> tribev2.demo_utils.TribeModel.get_events_dataframe()  (extracts video/audio events)

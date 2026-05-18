@@ -61,11 +61,6 @@ export function hotnessToRGB(h: number): [number, number, number] {
   ];
 }
 
-/** Legacy direct mapping kept for the activity legend gradient calibration. */
-export function activationToRGB(act: number): [number, number, number] {
-  return hotnessToRGB(Math.max(0, (act - 70) / 30));
-}
-
 /**
  * Classify a vertex (unit-sphere coords relative to its hemisphere center)
  * into one of the five sub-score ROI zones.

@@ -9,7 +9,7 @@ build:
   run:
     # Bake all model weights into the image at push time. The user passes
     # HUGGING_FACE_HUB_TOKEN as a build secret:
-    #   cog push --secret id=HUGGING_FACE_HUB_TOKEN,env=HUGGING_FACE_HUB_TOKEN ...
+    #   cog push --secret id=HUGGING_FACE_HUB_TOKEN,src=/path/to/hf_token ...
     # The token is only present during build; it is not embedded in the
     # final image. Llama-3.2-3B is gated so this token is required.
     #

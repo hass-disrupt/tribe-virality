@@ -1,8 +1,8 @@
 """Smoke test for the Predictor's end-to-end output.
 
-Phase-2 status: real TRIBE inference needs a GPU plus baked weights, so
-this test is intentionally skipped on local CPU runs and CI. It is
-exercised inside the cog image via `cog run python -m pytest`.
+Real TRIBE inference needs a GPU plus baked weights, so this test is
+intentionally skipped on local CPU runs and CI. It is exercised inside
+the cog image via `cog run python -m pytest`.
 """
 from __future__ import annotations
 
@@ -67,6 +67,5 @@ def test_predict_returns_well_formed_output(tiny_mp4: Path) -> None:
     reward_values = {row["reward"] for row in result.timeline}
     assert len(reward_values) > 1, "Timeline reward column is flat — TRIBE output suspicious"
 
-    # Sanity check: model_version reports the current Phase-2 string.
     assert result.model_version.startswith("tribev2"), \
         f"Unexpected model_version: {result.model_version}"

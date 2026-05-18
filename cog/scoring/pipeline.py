@@ -20,7 +20,6 @@ PipelineResult with:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
 
 import numpy as np
 
@@ -130,22 +129,3 @@ def score_preds(preds: np.ndarray, video_duration_s: float) -> PipelineResult:
         sub_scores=sub_scores,
         timeline=timeline,
     )
-
-
-def sub_score_curves(preds: np.ndarray) -> dict[str, np.ndarray]:
-    """Return the raw (T,) curve per sub-score, pre-z-scoring.
-
-    Used by the brain renderer, which colors the cortex by per-vertex activation
-    but wants to know the per-sub-score envelope for legending.
-    """
-    bucket_indices = get_bucket_indices()
-    return {name: preds[:, bucket_indices[name]].mean(axis=1).astype(np.float64) for name in SUB_SCORE_NAMES}
-
-
-def serialize_result(result: PipelineResult) -> dict[str, Any]:
-    """Produce a JSON-serializable dict for storage/transport."""
-    return {
-        "headline_score": int(result.headline_score),
-        "sub_scores": {k: float(v) for k, v in result.sub_scores.items()},
-        "timeline": [{k: float(v) for k, v in row.items()} for row in result.timeline],
-    }

@@ -406,7 +406,6 @@ export function HeadViewer3D({
 
       // Constrain by the longest extent (anterior-posterior on a brain).
       const maxDim = Math.max(size.x, size.y, size.z);
-      // const targetMax = 1.95;
       const targetMax = 1.8;
       const scale = targetMax / Math.max(maxDim, 0.001);
       brainGroup.scale.setScalar(scale);
