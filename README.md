@@ -3,9 +3,27 @@
 Upload a short video and see how a human brain would respond to it — scored
 using Meta's [TRIBE v2](https://huggingface.co/facebook/tribev2), a multimodal
 foundation model that predicts fMRI responses to video, audio, and text.
-Inference runs on Replicate.
+Inference runs on Replicate via the
+[`prakhar-bhartiya/meta-tribev2-social-media-content-signal`](https://replicate.com/prakhar-bhartiya/meta-tribev2-social-media-content-signal)
+model.
 
 > Research-grade approximation. Non-commercial use only (CC-BY-NC-4.0). Not clinical.
+
+## Screenshots
+
+**1 · Landing** — drop in a short video; you bring your own Replicate token.
+
+![Tribe Virality landing screen — "How viral will your video be?"](./img/initial_screen.png)
+
+**2 · Results** — the predicted brain response, a frame-by-frame activation
+timeline, the five cognitive sub-scores, and the overall 0–100 virality score.
+
+![Tribe Virality results screen — 3D brain viewer, activation timeline and sub-scores](./img/main_screen.png)
+
+**3 · Versioning** — re-upload an edited cut and compare scores across versions
+from the upload-history panel.
+
+![Tribe Virality versioning — upload history panel comparing video versions](./img/versioning_system.png)
 
 ## Quick start
 
@@ -31,7 +49,8 @@ accounts, no telemetry.
 
 [`cog/`](./cog/) packages TRIBE v2 for Replicate (V-JEPA2 video + Wav2Vec-BERT
 audio + Llama-3.2-3B language towers, baked into the image so cold starts
-don't pay a multi-GB download). For each video the predictor returns TRIBE's
+don't pay a multi-GB download), deployed as
+[`prakhar-bhartiya/meta-tribev2-social-media-content-signal`](https://replicate.com/prakhar-bhartiya/meta-tribev2-social-media-content-signal). For each video the predictor returns TRIBE's
 per-timestep fMRI activation on the fsaverage5 cortical mesh (~20k vertices).
 
 On top of that prediction, [`cog/scoring/`](./cog/scoring/) maps grouped
