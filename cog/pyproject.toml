@@ -10,6 +10,9 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "pytest>=8",
+  # Build-time only: regenerating data/roi_mapping.json from the Destrieux
+  # atlas. NOT a runtime dependency — the image only reads the baked JSON.
+  "nilearn>=0.10",
 ]
 
 [tool.setuptools]

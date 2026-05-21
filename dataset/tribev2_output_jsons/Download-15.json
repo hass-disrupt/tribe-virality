@@ -1,0 +1,121 @@
+{
+  "source": "Download-15",
+  "created_at": "2026-05-20T19:06:31.264Z",
+  "status": "succeeded",
+  "metrics": {
+    "predict_time": 94.650503589,
+    "total_time": 94.694048139
+  },
+  "output": {
+    "frame_count": 12,
+    "headline_score": 26,
+    "model_version": "tribev2-prod-v2",
+    "scoring_version": "2.0",
+    "sub_scores": {
+      "attention": 2,
+      "emotion": 97,
+      "novelty": 2,
+      "reward": 3,
+      "social_relevance": 3
+    },
+    "timeline": [
+      {
+        "attention": 3.64,
+        "emotion": 95.81,
+        "novelty": 3.03,
+        "reward": 3.13,
+        "social_relevance": 2.49,
+        "t": 0
+      },
+      {
+        "attention": 2.58,
+        "emotion": 96.92,
+        "novelty": 2.68,
+        "reward": 2.97,
+        "social_relevance": 2.36,
+        "t": 1.0606363636363636
+      },
+      {
+        "attention": 1.69,
+        "emotion": 97.91,
+        "novelty": 2.11,
+        "reward": 2.73,
+        "social_relevance": 1.95,
+        "t": 2.121272727272727
+      },
+      {
+        "attention": 1.55,
+        "emotion": 97.95,
+        "novelty": 1.87,
+        "reward": 2.7,
+        "social_relevance": 1.89,
+        "t": 3.181909090909091
+      },
+      {
+        "attention": 1.68,
+        "emotion": 97.92,
+        "novelty": 1.85,
+        "reward": 2.81,
+        "social_relevance": 2.45,
+        "t": 4.242545454545454
+      },
+      {
+        "attention": 1.56,
+        "emotion": 97.99,
+        "novelty": 1.97,
+        "reward": 2.97,
+        "social_relevance": 3.21,
+        "t": 5.303181818181818
+      },
+      {
+        "attention": 1.47,
+        "emotion": 97.92,
+        "novelty": 2.14,
+        "reward": 2.95,
+        "social_relevance": 3.42,
+        "t": 6.363818181818182
+      },
+      {
+        "attention": 1.69,
+        "emotion": 97.76,
+        "novelty": 2.27,
+        "reward": 3.18,
+        "social_relevance": 4.44,
+        "t": 7.424454545454545
+      },
+      {
+        "attention": 1.4,
+        "emotion": 97.52,
+        "novelty": 2.35,
+        "reward": 3.22,
+        "social_relevance": 4.9,
+        "t": 8.485090909090909
+      },
+      {
+        "attention": 1.42,
+        "emotion": 97.1,
+        "novelty": 2.5,
+        "reward": 3.47,
+        "social_relevance": 5.13,
+        "t": 9.545727272727271
+      },
+      {
+        "attention": 1.81,
+        "emotion": 95.82,
+        "novelty": 3.26,
+        "reward": 4.06,
+        "social_relevance": 6.47,
+        "t": 10.606363636363636
+      },
+      {
+        "attention": 2.43,
+        "emotion": 91.06,
+        "novelty": 4.04,
+        "reward": 4.37,
+        "social_relevance": 6.34,
+        "t": 11.667
+      }
+    ],
+    "video_duration_s": 11.667
+  }
+}

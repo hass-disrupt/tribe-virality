@@ -10,19 +10,16 @@ export type ZoneKey =
 export type SubMap = Record<ZoneKey, number>;
 
 /**
- * Vibrant 5-stop colormap on-brand with the app's #a78bfa purple accent.
- * Ramps deep purple → violet → magenta → orange → yellow as hotness rises.
+ * Heat-map colormap: yellow → orange → red as hotness rises. Standard
+ * cool→hot warm-spectrum convention; pairs naturally with the off-white
+ * cortical base colour blended in via `hotnessToRGB`.
  */
 function hotRGB(t: number): [number, number, number] {
-  // Stops chosen so adjacent transitions stay perceptually smooth and the
-  // mid-range (0.4–0.7, where most real activations land) is the most
-  // saturated. Each entry is [stop_position, [r, g, b]] in 0..1.
+  // Each entry is [stop_position, [r, g, b]] in 0..1.
   const stops: ReadonlyArray<readonly [number, readonly [number, number, number]]> = [
-    [0.00, [0.25, 0.10, 0.65]],  // deep indigo-purple
-    [0.30, [0.65, 0.25, 0.95]],  // bright violet
-    [0.55, [1.00, 0.30, 0.65]],  // hot magenta
-    [0.80, [1.00, 0.55, 0.15]],  // saturated orange
-    [1.00, [1.00, 1.00, 0.40]],  // bright yellow
+    [0.00, [1.00, 0.93, 0.50]],  // pale yellow
+    [0.50, [1.00, 0.55, 0.18]],  // saturated orange
+    [1.00, [0.82, 0.10, 0.16]],  // deep red
   ];
   for (let i = 0; i < stops.length - 1; i++) {
     const [t0, c0] = stops[i];

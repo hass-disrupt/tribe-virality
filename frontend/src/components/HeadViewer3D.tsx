@@ -8,7 +8,13 @@
  * both hemispheres on mount, then upgrades to high-LOD in the background.
  */
 
-import { useEffect, useRef, useState } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
@@ -124,11 +130,22 @@ interface HeadViewer3DProps {
   className?: string;
 }
 
-export function HeadViewer3D({
-  timeline,
-  playheadTime,
-  className,
-}: HeadViewer3DProps) {
+/**
+ * Imperative API for BrainFrameCaptureGate. The animate loop's playhead-
+ * driven coloring races React's commit timing during fast off-screen capture,
+ * so the strip uses `captureAt` to drive a synchronous render-and-readback
+ * at an exact time, side-stepping the React/rAF queue entirely.
+ */
+export interface HeadViewer3DHandle {
+  /** Render the brain at time `t` (seconds) and return a JPEG data URL,
+   *  or null if the renderer or meshes aren't ready yet. */
+  captureAt(t: number): string | null;
+  /** True once both hemispheres of at least the pial surface have loaded. */
+  hasMeshes(): boolean;
+}
+
+export const HeadViewer3D = forwardRef<HeadViewer3DHandle, HeadViewer3DProps>(
+  function HeadViewer3D({ timeline, playheadTime, className }, ref) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [showGuide, setShowGuide] = useState(false);
   const [inflated, setInflated] = useState(false);
@@ -143,6 +160,25 @@ export function HeadViewer3D({
   const explodedRef = useRef(exploded);
   inflatedRef.current = inflated;
   explodedRef.current = exploded;
+
+  // Populated by the setup useEffect once the renderer + meshes are live.
+  // Exposed via useImperativeHandle so capture-side callers don't race React.
+  const captureFnRef = useRef<((t: number) => string | null) | null>(null);
+  const hasMeshesRef = useRef<() => boolean>(() => false);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      captureAt(t: number) {
+        const fn = captureFnRef.current;
+        return fn ? fn(t) : null;
+      },
+      hasMeshes() {
+        return hasMeshesRef.current();
+      },
+    }),
+    [],
+  );
 
   useEffect(() => {
     const container = containerRef.current;
@@ -455,6 +491,35 @@ export function HeadViewer3D({
       maybeStartHighLOD();
     };
 
+    // Imperative capture: synchronously color → render → readback, no
+    // dependence on the animate loop's playhead or React state.
+    hasMeshesRef.current = () =>
+      !disposed &&
+      meshesBySurface.pial.length > 0 &&
+      meshesBySurface.inflated.length > 0;
+
+    captureFnRef.current = (t: number): string | null => {
+      if (disposed) return null;
+      const surface: Surface = inflatedRef.current ? "inflated" : "pial";
+      const meshes = meshesBySurface[surface];
+      if (meshes.length === 0) return null;
+
+      // Mirror the visibility + explode state the animate loop maintains,
+      // since we're rendering outside its normal cadence.
+      leftPialGroup.visible = !inflatedRef.current;
+      rightPialGroup.visible = !inflatedRef.current;
+      leftInflatedGroup.visible = inflatedRef.current;
+      rightInflatedGroup.visible = inflatedRef.current;
+
+      const scores = interpolateScores(timelineRef.current, t);
+      const zoneHot = ZONE_KEYS.map((k) =>
+        Math.max(0, Math.min(1, Math.abs(scores[k] - 50) / 50)),
+      );
+      updateColors(meshes, zoneHot);
+      renderer.render(scene, camera);
+      return renderer.domElement.toDataURL("image/jpeg", 0.85);
+    };
+
     loadInto(BRAIN_URLS.low.pial.L, leftPialGroup, "L", "pial", onLowLoaded);
     loadInto(BRAIN_URLS.low.pial.R, rightPialGroup, "R", "pial", onLowLoaded);
     loadInto(
@@ -562,14 +627,15 @@ export function HeadViewer3D({
         lastSurface = surface;
         forceColorRefresh = false;
         const scores = interpolateScores(timelineRef.current, t);
-        // Hotness window. Real TRIBE outputs (with the current synthesized
-        // baseline) cluster in 0–25, so map that range to [0,1] hotness.
-        // When baseline_stats.json is recalibrated against measured videos
-        // and scores spread closer to 0–100, widen `span` accordingly.
-        const lo = 0;
-        const span = 20;
+        // Hotness = signed deviation from the baseline midpoint (50). Each
+        // sub-score is sigmoid-normalized around 50, so 50 = neutral (base
+        // colour) and 0 or 100 = maximum activity in whatever direction the
+        // construct's ROI_SIGN defines. This matches the scorer's semantics
+        // for both positive-sign constructs (reward/attention/novelty/social)
+        // and the sign-inverted `emotion`, and stays well-calibrated whether
+        // the synthetic baseline or an empirical one is in use.
         const zoneHot = ZONE_KEYS.map((k) =>
-          Math.max(0, Math.min(1, (scores[k] - lo) / span)),
+          Math.max(0, Math.min(1, Math.abs(scores[k] - 50) / 50)),
         );
         updateColors(meshesBySurface[surface], zoneHot);
       }
@@ -593,6 +659,8 @@ export function HeadViewer3D({
     // ── cleanup ──
     return () => {
       disposed = true;
+      captureFnRef.current = null;
+      hasMeshesRef.current = () => false;
       cancelAnimationFrame(rafId);
       if (idleTimer) window.clearTimeout(idleTimer);
       controls.removeEventListener("start", pauseAutoRotate);
@@ -678,4 +746,4 @@ export function HeadViewer3D({
       )}
     </div>
   );
-}
+});

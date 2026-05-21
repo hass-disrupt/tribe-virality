@@ -49,8 +49,13 @@ the `Authorization` header by the browser and passes through untouched.
 
 ## Building & pushing the cog model
 
-See [`../cog/README.md`](../cog/README.md). Once authenticated:
+The image bakes gated model weights (Llama-3.2-3B) at build time, so the push
+needs a HuggingFace **read** token passed as a build secret. See
+[`../cog/README.md`](../cog/README.md) for the full instructions; the short form:
 
 ```bash
-cog push r8.im/prakhar-bhartiya/meta-tribev2-social-media-content-signal
+echo -n "hf_yourReadTokenHere" > /tmp/hf_token
+cog push --secret id=HUGGING_FACE_HUB_TOKEN,src=/tmp/hf_token \
+  r8.im/prakhar-bhartiya/meta-tribev2-social-media-content-signal
+rm /tmp/hf_token
 ```

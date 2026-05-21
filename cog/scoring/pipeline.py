@@ -24,7 +24,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from .baseline import load_baseline_stats
-from .constants import SUB_SCORE_NAMES, WEIGHTS
+from .constants import ROI_SIGN, SUB_SCORE_NAMES, WEIGHTS
 from .rois import expected_n_vertices, get_bucket_indices
 
 
@@ -40,17 +40,47 @@ def _sigmoid(x: np.ndarray | float) -> np.ndarray | float:
     return 1.0 / (1.0 + np.exp(-x))
 
 
-def _zscore_to_score(mean_activation: float, mu: float, sigma: float) -> float:
-    """Map a scalar mean-activation to a 0-100 score via z-score + sigmoid."""
-    z = (mean_activation - mu) / sigma
+def _zscore_to_score(
+    mean_activation: float, mu: float, sigma: float, sign: int = 1
+) -> float:
+    """Map a scalar mean-activation to a 0-100 score via z-score + sigmoid.
+
+    `sign` (+1/-1) flips the direction *before* the sigmoid so a construct whose
+    higher activation predicts LOWER engagement (e.g. anterior insula) scores
+    below 50 when above baseline. At baseline (z=0) the score is 50 either way.
+    """
+    z = sign * (mean_activation - mu) / sigma
     # Sigmoid on z gives 0-1; map linearly to 0-100.
     return float(_sigmoid(z) * 100.0)
 
 
-def _curve_to_0_100(curve: np.ndarray, mu: float, sigma: float) -> np.ndarray:
-    """Map a (T,) activation curve to 0-100 per step, same z+sigmoid transform."""
-    z = (curve - mu) / sigma
+def _curve_to_0_100(
+    curve: np.ndarray, mu: float, sigma: float, sign: int = 1
+) -> np.ndarray:
+    """Map a (T,) activation curve to 0-100 per step, same signed z+sigmoid."""
+    z = sign * (curve - mu) / sigma
     return _sigmoid(z) * 100.0
+
+
+def roi_mean_activations(preds: np.ndarray) -> dict[str, float]:
+    """Time-and-vertex-averaged activation per construct (the pre-z-score
+    quantity). Reused by ``data/build_baseline_stats.py`` so empirical baselines
+    are computed in TRIBE's native output units, on the same ROIs the scorer
+    uses. Equals ``preds[:, idx].mean()`` for each bucket.
+    """
+    if preds.ndim != 2:
+        raise ValueError(f"preds must be 2D (T, V); got shape {preds.shape}")
+    expected_v = expected_n_vertices()
+    if preds.shape[1] != expected_v:
+        raise ValueError(
+            f"preds has V={preds.shape[1]} vertices but ROI mapping expects "
+            f"{expected_v}."
+        )
+    bucket_indices = get_bucket_indices()
+    return {
+        name: float(preds[:, bucket_indices[name]].mean())
+        for name in SUB_SCORE_NAMES
+    }
 
 
 def score_preds(preds: np.ndarray, video_duration_s: float) -> PipelineResult:
@@ -96,7 +126,9 @@ def score_preds(preds: np.ndarray, video_duration_s: float) -> PipelineResult:
         mu = baseline[name]["mean"]
         sigma = baseline[name]["std"]
         mean_activation = float(curves[name].mean())
-        sub_scores[name] = round(_zscore_to_score(mean_activation, mu, sigma), 2)
+        sub_scores[name] = round(
+            _zscore_to_score(mean_activation, mu, sigma, ROI_SIGN[name]), 2
+        )
 
     # Weighted headline virality.
     headline_raw = sum(WEIGHTS[name] * sub_scores[name] for name in SUB_SCORE_NAMES)
@@ -115,7 +147,7 @@ def score_preds(preds: np.ndarray, video_duration_s: float) -> PipelineResult:
     for name in SUB_SCORE_NAMES:
         mu = baseline[name]["mean"]
         sigma = baseline[name]["std"]
-        curves_0_100[name] = _curve_to_0_100(curves[name], mu, sigma)
+        curves_0_100[name] = _curve_to_0_100(curves[name], mu, sigma, ROI_SIGN[name])
 
     timeline: list[dict[str, float]] = []
     for i in range(t):

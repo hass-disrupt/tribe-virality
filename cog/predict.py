@@ -23,6 +23,7 @@ os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "0"
 
 import shutil
 import subprocess
+from contextlib import contextmanager
 from pathlib import Path as FsPath
 
 # TRIBE's get_events_dataframe() validates `video_path` against this set.
@@ -41,12 +42,39 @@ from scoring.pipeline import score_preds
 # Bumped any time the model weights, tokenizer pin, or scoring weights change.
 # The frontend echoes this verbatim in attempt metadata so users can compare
 # results across model revisions.
-MODEL_VERSION = "tribev2-prod-v1"
-SCORING_VERSION = "1.0"
+MODEL_VERSION = "tribev2-prod-v2"
+SCORING_VERSION = "2.1"  # Destrieux ROIs + signed scoring; see cog/METHODOLOGY.md
 
 # Where `cog.yaml`'s build step bakes the TRIBE weights. Must match the
 # `cache_folder=` argument used in the bake command.
 WEIGHTS_CACHE_DIR = FsPath("/src/cache")
+
+
+@contextmanager
+def _hf_offline():
+    """Force HF/transformers into offline mode for the duration of the block.
+
+    Scoped (not module-level) because TRIBE's get_events_dataframe spawns
+    whisperx in a subprocess that legitimately needs network to pull
+    faster-whisper weights at runtime. We only want offline mode around the
+    TRIBE language-tower call where Llama-3.2-3B is loaded — that repo is
+    gated, the HF token is intentionally NOT in the runtime image, and
+    transformers will otherwise 401 against Replicate's HF mirror trying to
+    fetch tokenizer.model. The weights themselves are baked at build time
+    (see cog.yaml).
+    """
+    flags = ("HF_HUB_OFFLINE", "TRANSFORMERS_OFFLINE")
+    prior = {k: os.environ.get(k) for k in flags}
+    for k in flags:
+        os.environ[k] = "1"
+    try:
+        yield
+    finally:
+        for k, v in prior.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
 
 
 class TribeOutput(BaseModel):
@@ -138,7 +166,11 @@ class Predictor(BasePredictor):
         # video frames, etc.) and then predicts fMRI activation per cortical
         # vertex per timestep at ~2 Hz on the fsaverage5 mesh.
         events_df = self.model.get_events_dataframe(video_path=str(video_path))
-        preds, _segments = self.model.predict(events=events_df)
+        # Llama tower (gated) loads inside model.predict; force offline so
+        # transformers reads only the baked cache. See _hf_offline() for why
+        # this is scoped rather than set globally.
+        with _hf_offline():
+            preds, _segments = self.model.predict(events=events_df)
 
         # `preds` is expected to be (T, V) on fsaverage5 (~20484 vertices).
         if not isinstance(preds, np.ndarray):

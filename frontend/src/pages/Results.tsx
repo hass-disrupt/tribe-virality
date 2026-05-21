@@ -8,7 +8,7 @@ import { SubScoreCard } from "../components/SubScoreCard";
 import { TimelineChart } from "../components/TimelineChart";
 import { BrainFrameStrip } from "../components/BrainFrameStrip";
 import { AttemptsDrawer } from "../components/AttemptsDrawer";
-import { HeadViewer3D } from "../components/HeadViewer3D";
+import { HeadViewer3D, type HeadViewer3DHandle } from "../components/HeadViewer3D";
 import { useVideoThumbnails } from "../hooks/useVideoThumbnails";
 import { SUB_SCORE_KEYS, type Attempt, type TimelinePoint } from "../types";
 
@@ -204,34 +204,40 @@ function BrainFrameCaptureGate({
 }: {
   attempt: Attempt; onCapture: (frames: string[]) => void;
 }) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const viewerRef = useRef<HeadViewer3DHandle>(null);
   const [done, setDone] = useState(false);
-  const [t, setT] = useState(0);
 
   useEffect(() => {
     if (!attempt.timeline || attempt.frameCount <= 0) return;
-    const node = containerRef.current;
-    if (!node) return;
     let cancelled = false;
 
     const capture = async () => {
-      const frames: string[] = [];
       const total = attempt.frameCount;
       const dur = attempt.videoDurationS;
-      // Wait one animation frame for HeadViewer3D's renderer to mount + load.
-      await new Promise((r) => requestAnimationFrame(() => r(null)));
-      // Give Three.js loaders a moment on first mount.
-      await new Promise((r) => setTimeout(r, 800));
+
+      // Wait for the off-screen HeadViewer3D to mount + load both hemispheres
+      // (low-LOD pial + inflated). Poll because mesh load is async and the
+      // first attempt's first call typically fires before the GLBs are in.
+      for (let i = 0; i < 100; i++) {
+        if (cancelled) return;
+        if (viewerRef.current?.hasMeshes()) break;
+        await new Promise((r) => setTimeout(r, 100));
+      }
+      // One more tick so the layout-driven fitBrain() bbox settles before
+      // we start snapping frames.
+      await new Promise((r) => setTimeout(r, 200));
+
+      const frames: string[] = [];
       for (let i = 0; i < total; i++) {
         if (cancelled) return;
         const tt = total === 1 ? 0 : (i * dur) / (total - 1);
-        setT(tt);
-        await new Promise((r) => requestAnimationFrame(() => r(null)));
-        const canvas = node.querySelector("canvas") as HTMLCanvasElement | null;
-        if (!canvas) break;
-        frames.push(canvas.toDataURL("image/jpeg", 0.85));
+        // Synchronous: update colours → render → readback in one call.
+        // No React state, no rAF race — every frame reflects its own `tt`.
+        const data = viewerRef.current?.captureAt(tt);
+        if (!data) break;
+        frames.push(data);
       }
-      if (!cancelled) {
+      if (!cancelled && frames.length === total) {
         onCapture(frames);
         setDone(true);
       }
@@ -249,10 +255,11 @@ function BrainFrameCaptureGate({
         <div className="w-4 h-4 rounded-full border-2 border-accent/30 border-t-accent animate-spin shrink-0" />
         Rendering brain frames…
       </div>
-      <div ref={containerRef} style={{ position: "absolute", left: -9999, top: -9999, width: 96, height: 130 }}>
+      <div style={{ position: "absolute", left: -9999, top: -9999, width: 96, height: 130 }}>
         <HeadViewer3D
+          ref={viewerRef}
           timeline={attempt.timeline ?? []}
-          playheadTime={t}
+          playheadTime={0}
           className="w-full h-full"
         />
       </div>

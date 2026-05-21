@@ -1,0 +1,89 @@
+{
+  "source": "Download-10",
+  "created_at": "2026-05-20T18:52:23.874Z",
+  "status": "succeeded",
+  "metrics": {
+    "predict_time": 107.184707764,
+    "total_time": 371.138160977
+  },
+  "output": {
+    "frame_count": 8,
+    "headline_score": 27,
+    "model_version": "tribev2-prod-v2",
+    "scoring_version": "2.0",
+    "sub_scores": {
+      "attention": 5,
+      "emotion": 97,
+      "novelty": 3,
+      "reward": 3,
+      "social_relevance": 2
+    },
+    "timeline": [
+      {
+        "attention": 4.55,
+        "emotion": 96.29,
+        "novelty": 3.24,
+        "reward": 3.48,
+        "social_relevance": 2.37,
+        "t": 0
+      },
+      {
+        "attention": 4.43,
+        "emotion": 96.57,
+        "novelty": 3.14,
+        "reward": 3.43,
+        "social_relevance": 2,
+        "t": 1.131
+      },
+      {
+        "attention": 4.29,
+        "emotion": 96.8,
+        "novelty": 3.03,
+        "reward": 3.29,
+        "social_relevance": 1.8,
+        "t": 2.262
+      },
+      {
+        "attention": 4.66,
+        "emotion": 97.03,
+        "novelty": 3.02,
+        "reward": 3.24,
+        "social_relevance": 1.84,
+        "t": 3.393
+      },
+      {
+        "attention": 5.2,
+        "emotion": 96.87,
+        "novelty": 3.08,
+        "reward": 3.24,
+        "social_relevance": 1.87,
+        "t": 4.524
+      },
+      {
+        "attention": 5.81,
+        "emotion": 96.38,
+        "novelty": 3.28,
+        "reward": 3.26,
+        "social_relevance": 2.12,
+        "t": 5.655
+      },
+      {
+        "attention": 4.59,
+        "emotion": 96.27,
+        "novelty": 3.3,
+        "reward": 3.09,
+        "social_relevance": 2.57,
+        "t": 6.786
+      },
+      {
+        "attention": 4.77,
+        "emotion": 96.37,
+        "novelty": 3.24,
+        "reward": 3.11,
+        "social_relevance": 2.77,
+        "t": 7.917
+      }
+    ],
+    "video_duration_s": 7.917
+  }
+}

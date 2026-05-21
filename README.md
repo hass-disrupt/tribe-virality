@@ -65,11 +65,14 @@ single 0–100 virality score:
 | Social Relevance | 15%    | Medial PFC, TPJ, precuneus                           |
 | Novelty          | 10%    | Parahippocampal cortex, posterior cingulate          |
 
-Each sub-score is the mean activation in its ROI, z-scored against a
-synthesized baseline and squashed through a sigmoid to 0–100. The
-mapping is deterministic — same file in, same score out. **TRIBE itself
-does not produce a "virality score" — this layer is our heuristic.** See
-[`cog/README.md`](./cog/README.md#scoring) for the math.
+Each sub-score is the mean activation in its ROI — taken from the **Destrieux
+cortical atlas** — z-scored against an **empirically-calibrated baseline** and
+squashed through a sigmoid to 0–100; the emotion/insula term is **sign-flipped**
+per the neuroforecasting literature (Genevsky & Knutson, PNAS 2020). The
+mapping is deterministic — same file in, same score out. **TRIBE itself does
+not produce a "virality score" — this layer is our heuristic.** See
+[`cog/METHODOLOGY.md`](./cog/METHODOLOGY.md) for what is grounded, what is not,
+and the open limitations, and [`cog/README.md`](./cog/README.md#scoring) for the math.
 
 ## Documentation
 
@@ -77,6 +80,8 @@ does not produce a "virality score" — this layer is our heuristic.** See
 - [`docs/DEPLOYMENT.md`](./docs/DEPLOYMENT.md) — production build + nginx config
 - [`docs/REPLICATE_SETUP.md`](./docs/REPLICATE_SETUP.md) — getting a Replicate account & API token
 - [`cog/README.md`](./cog/README.md) — building the model & the scoring pipeline
+- [`cog/METHODOLOGY.md`](./cog/METHODOLOGY.md) — scoring grounding, limitations & citations
+- [`dataset/README.md`](./dataset/README.md) — sample runs & how the baseline corpus is built
 
 ## License
 

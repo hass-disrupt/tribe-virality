@@ -58,9 +58,12 @@ Validated client-side before any upload starts.
 cog/                          # Replicate model package
   cog.yaml
   predict.py
-  scoring/                    # pure-Python scoring pipeline
-  data/                       # roi_mapping.json, baseline_stats.json
+  METHODOLOGY.md              # scoring grounding, limitations, citations
+  scoring/                    # pure-Python scoring pipeline (atlas ROIs, signs, baseline)
+  data/                       # roi_mapping.json, baseline_stats.json + their generators
   tests/
+
+dataset/                      # sample reference-clip predictions (the baseline corpus)
 
 frontend/
   src/

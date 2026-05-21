@@ -20,10 +20,14 @@ def load_roi_mapping() -> dict:
         return json.load(f)
 
 
-@lru_cache(maxsize=1)
-def get_bucket_indices() -> Mapping[str, np.ndarray]:
-    """Return {sub_score_name: np.ndarray[int] of vertex indices} for each bucket."""
-    mapping = load_roi_mapping()
+def bucket_indices_from_mapping(mapping: dict) -> dict[str, np.ndarray]:
+    """Parse an ROI-mapping dict into {sub_score: sorted-unique int64 indices}.
+
+    Pure (no file IO). Each bucket carries a ``vertex_indices`` list of
+    fsaverage5 vertex ids (atlas-derived, non-contiguous — produced by
+    ``data/build_roi_mapping.py``). Indices must lie in ``[0, n_vertices)``
+    and each bucket must be non-empty.
+    """
     n_vertices = int(mapping["n_vertices"])
     buckets = mapping["buckets"]
 
@@ -31,14 +35,25 @@ def get_bucket_indices() -> Mapping[str, np.ndarray]:
     for name in SUB_SCORE_NAMES:
         if name not in buckets:
             raise KeyError(f"Sub-score {name!r} missing from roi_mapping.json")
-        ranges = buckets[name]["vertex_ranges"]
-        parts = []
-        for start, stop in ranges:
-            if not (0 <= start < stop <= n_vertices):
-                raise ValueError(f"Invalid vertex range [{start}, {stop}) for {name!r}")
-            parts.append(np.arange(start, stop, dtype=np.int64))
-        result[name] = np.concatenate(parts) if parts else np.empty(0, dtype=np.int64)
+        spec = buckets[name]
+        if "vertex_indices" not in spec:
+            raise ValueError(f"Bucket {name!r} is missing 'vertex_indices'")
+
+        idx = np.unique(np.asarray(spec["vertex_indices"], dtype=np.int64).ravel())
+        if idx.size == 0:
+            raise ValueError(f"Bucket {name!r} is empty (no vertices)")
+        if idx[0] < 0 or idx[-1] >= n_vertices:
+            raise ValueError(
+                f"Vertex index for {name!r} out of range [0, {n_vertices})"
+            )
+        result[name] = idx
     return result
+
+
+@lru_cache(maxsize=1)
+def get_bucket_indices() -> Mapping[str, np.ndarray]:
+    """Return {sub_score_name: np.ndarray[int] of vertex indices} for each bucket."""
+    return bucket_indices_from_mapping(load_roi_mapping())
 
 
 def expected_n_vertices() -> int:

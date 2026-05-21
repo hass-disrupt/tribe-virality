@@ -5,9 +5,10 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from scoring.constants import SUB_SCORE_NAMES, WEIGHTS
+from scoring.baseline import load_baseline_stats
+from scoring.constants import ROI_SIGN, SUB_SCORE_NAMES, WEIGHTS
 from scoring.pipeline import score_preds
-from scoring.rois import expected_n_vertices
+from scoring.rois import expected_n_vertices, get_bucket_indices
 
 
 def _make_preds(t: int, fill: float = 0.5) -> np.ndarray:
@@ -15,9 +16,29 @@ def _make_preds(t: int, fill: float = 0.5) -> np.ndarray:
     return np.full((t, v), fill, dtype=np.float64)
 
 
+def _make_preds_at_offset(t: int, offset_sigmas: float) -> np.ndarray:
+    """Fill each construct's ROI vertices so its activation sits exactly
+    `offset_sigmas` standard deviations from *that construct's* baseline mean.
+
+    This makes the scoring z-score equal to `offset_sigmas` for every construct
+    regardless of the shipped baseline_stats.json values, so the tests verify
+    the scoring math rather than any particular calibration.
+    """
+    v = expected_n_vertices()
+    preds = np.zeros((t, v), dtype=np.float64)
+    baseline = load_baseline_stats()
+    bi = get_bucket_indices()
+    for name in SUB_SCORE_NAMES:
+        mu = baseline[name]["mean"]
+        sigma = baseline[name]["std"]
+        preds[:, bi[name]] = mu + offset_sigmas * sigma
+    return preds
+
+
 def test_neutral_input_lands_at_50():
-    """A constant array at the baseline mean should score 50 on every sub-score."""
-    preds = _make_preds(t=10, fill=0.50)
+    """Activation exactly at each construct's baseline mean → z=0 → 50, and a
+    headline of 50."""
+    preds = _make_preds_at_offset(t=10, offset_sigmas=0.0)
     result = score_preds(preds, video_duration_s=5.0)
     for name in SUB_SCORE_NAMES:
         # sigmoid(0) = 0.5 -> 50
@@ -25,21 +46,45 @@ def test_neutral_input_lands_at_50():
     assert result.headline_score == 50
 
 
-def test_high_activation_pushes_score_up():
-    """Activation above baseline mean should yield scores > 50."""
-    preds = _make_preds(t=5, fill=0.8)
+def test_activation_above_baseline_moves_each_sub_score_in_its_signed_direction():
+    """One sigma above each construct's baseline moves the sub-score in the
+    direction of its ROI_SIGN: positive-sign constructs rise above 50, the
+    sign-inverted `emotion` falls below 50."""
+    preds = _make_preds_at_offset(t=5, offset_sigmas=+1.0)
     result = score_preds(preds, video_duration_s=2.0)
     for name in SUB_SCORE_NAMES:
-        assert result.sub_scores[name] > 50
-    assert result.headline_score > 50
+        if ROI_SIGN[name] > 0:
+            assert result.sub_scores[name] > 50
+        else:
+            assert result.sub_scores[name] < 50
 
 
-def test_low_activation_pushes_score_down():
-    preds = _make_preds(t=5, fill=0.2)
+def test_activation_below_baseline_moves_each_sub_score_in_its_signed_direction():
+    """Mirror image: one sigma below baseline, positive-sign constructs fall
+    below 50 and the sign-inverted `emotion` rises above 50."""
+    preds = _make_preds_at_offset(t=5, offset_sigmas=-1.0)
     result = score_preds(preds, video_duration_s=2.0)
     for name in SUB_SCORE_NAMES:
-        assert result.sub_scores[name] < 50
-    assert result.headline_score < 50
+        if ROI_SIGN[name] > 0:
+            assert result.sub_scores[name] < 50
+        else:
+            assert result.sub_scores[name] > 50
+
+
+def test_emotion_sign_is_inverted_relative_to_reward():
+    """Per Genevsky & Knutson (PNAS 2020), higher anterior-insula / salience
+    activation forecasts LOWER engagement. So for activation above each
+    construct's baseline mean, the reward-positive `reward` sub-score must rise
+    above 50 while the sign-inverted `emotion` sub-score must fall below 50.
+    """
+    preds = _make_preds_at_offset(t=5, offset_sigmas=+2.0)
+    result = score_preds(preds, video_duration_s=2.0)
+    assert result.sub_scores["reward"] > 50
+    assert result.sub_scores["emotion"] < 50
+    # The same inversion must hold in the per-timestep timeline.
+    for row in result.timeline:
+        assert row["reward"] > 50
+        assert row["emotion"] < 50
 
 
 def test_timeline_length_matches_timesteps():

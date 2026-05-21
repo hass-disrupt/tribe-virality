@@ -1,8 +1,29 @@
 {
-  "_comment": "Per-sub-score baseline statistics used to z-score a video's activation. v1 values are synthesized. Replace with empirical statistics from ~30 reference videos in a future milestone.",
-  "reward": { "mean": 0.50, "std": 0.15 },
-  "emotion": { "mean": 0.50, "std": 0.15 },
-  "attention": { "mean": 0.50, "std": 0.15 },
-  "novelty": { "mean": 0.50, "std": 0.15 },
-  "social_relevance": { "mean": 0.50, "std": 0.15 }
+  "_comment": "Empirical baseline computed by build_baseline_from_predictions.py from 19 Replicate prediction JSONs on 2026-05-21. Mean/std of per-construct activation in TRIBE's native output units, recovered by inverting the synthetic-baseline sigmoid.",
+  "provenance": "empirical",
+  "reward": {
+    "mean": -0.0005984537560490878,
+    "std": 0.011493255423297797,
+    "n_videos": 19
+  },
+  "emotion": {
+    "mean": 0.06665971809722353,
+    "std": 0.05712895862170615,
+    "n_videos": 19
+  },
+  "attention": {
+    "mean": 0.13231745675941858,
+    "std": 0.08589098941156034,
+    "n_videos": 19
+  },
+  "novelty": {
+    "mean": 0.032310872239121824,
+    "std": 0.03691894115509421,
+    "n_videos": 19
+  },
+  "social_relevance": {
+    "mean": -0.011172847136390256,
+    "std": 0.05993360348575241,
+    "n_videos": 19
+  }
 }

@@ -49,3 +49,10 @@ cog/.cog/
 
 # Frontend (also see frontend/.gitignore)
 frontend/tsconfig.tsbuildinfo
+
+# Sample dataset: keep the prediction JSONs (small, reproducible sample runs)
+# but not the raw third-party video clips (large + copyright). The empty dir
+# is preserved via .gitkeep so the batch script's default path exists.
+# See dataset/README.md.
+dataset/sample_raw_videos/*
+!dataset/sample_raw_videos/.gitkeep

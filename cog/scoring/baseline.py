@@ -9,12 +9,12 @@ from pathlib import Path
 from .constants import SUB_SCORE_NAMES
 
 
-@lru_cache(maxsize=1)
-def load_baseline_stats() -> dict[str, dict[str, float]]:
-    """Return {sub_score: {"mean": float, "std": float}}."""
-    here = Path(__file__).resolve().parent.parent  # cog/
-    with (here / "data" / "baseline_stats.json").open("r") as f:
-        raw = json.load(f)
+def parse_baseline_stats(raw: dict) -> dict[str, dict[str, float]]:
+    """Parse a baseline-stats dict into ``{sub_score: {mean, std}}``.
+
+    Pure (no file IO). Tolerates top-level ``_comment``/``provenance`` and any
+    extra per-entry keys (e.g. the empirical format's ``n_videos``).
+    """
     out: dict[str, dict[str, float]] = {}
     for name in SUB_SCORE_NAMES:
         if name not in raw:
@@ -24,3 +24,12 @@ def load_baseline_stats() -> dict[str, dict[str, float]]:
         if out[name]["std"] <= 0:
             raise ValueError(f"Baseline std for {name!r} must be > 0")
     return out
+
+
+@lru_cache(maxsize=1)
+def load_baseline_stats() -> dict[str, dict[str, float]]:
+    """Return {sub_score: {"mean": float, "std": float}} from the baked JSON."""
+    here = Path(__file__).resolve().parent.parent  # cog/
+    with (here / "data" / "baseline_stats.json").open("r") as f:
+        raw = json.load(f)
+    return parse_baseline_stats(raw)
